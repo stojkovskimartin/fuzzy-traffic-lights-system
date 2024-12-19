@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Traffic Lights{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-traffic-light"></i> Manage Traffic Lights</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{{ url_for('dashboard.new_traffic_light') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Traffic Light
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <div id="loadingIndicator" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading traffic lights...</p>
+                </div>
+                <table class="table table-hover table-bordered d-none" id="trafficLightTable">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Description</th>
+                            <th>Density</th>
+                            <th>Green Duration</th>
+                            <th>Rush Hour Factor</th>
+                            <th>Sensors/Cameras</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for light in traffic_lights %}
+                        <tr>
+                            <td>{{ light.location }}</td>
+                            <td>{{ light.description }}</td>
+                            <td>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: {{ light.density * 100 }}%">
+                                        {{ "%.2f"|format(light.density) }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ light.green_duration }}s</td>
+                            <td>{{ "%.2f"|format(light.rush_hour_factor) }}</td>
+                            <td>
+                                <span class="badge bg-info">
+                                    <i class="fas fa-satellite-dish"></i> {{ light.sensors }} sensors
+                                </span>
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-video"></i> {{ light.cameras }} cameras
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">Active</span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('dashboard.edit_traffic_light', id=light.id) }}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <button class="btn btn-sm btn-danger delete-btn" 
+                                            data-id="{{ light.id }}"
+                                            data-location="{{ light.location }}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the traffic light at <strong id="deleteLocationText"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Pre-initialize table container size
+    const tableContainer = $('#trafficLightTable').closest('.table-responsive');
+    tableContainer.css('min-height', '500px');
+
+    // Initialize DataTable
+    const table = $('#trafficLightTable').DataTable({
+    pageLength: 15,
+    lengthMenu: [15, 30, 50, 100],
+    ordering: true,
+    order: [],
+    dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+         "<'row'<'col-sm-12'tr>>" +
+         "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+    columnDefs: [
+        {
+            targets: [2], // Density column
+            type: 'num',
+            render: function(data, type, row) {
+                if (type === 'sort') {
+                    return parseFloat($(data).find('.progress-bar').text());
+                }
+                return data;
+            }
+        },
+        {
+            targets: [3], // Green Duration
+            type: 'num',
+            render: function(data, type, row) {
+                if (type === 'sort') {
+                    return parseInt(data);
+                }
+                return data;
+            }
+        },
+        {
+            targets: [4], // Rush Hour Factor
+            type: 'num',
+            render: function(data, type, row) {
+                if (type === 'sort') {
+                    return parseFloat(data);
+                }
+                return data;
+            }
+        },
+        {
+            targets: [7], // Actions column
+            orderable: false
+        }
+    ],
+    language: {
+        search: "Search:",
+        lengthMenu: "Show _MENU_ entries",
+        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+        paginate: {
+            first: "First",
+            last: "Last",
+            next: "Next",
+            previous: "Previous"
+        }
+    }
+});
+
+$('.column-sort').on('change', function(e) {
+    e.stopPropagation();
+    const columnIdx = $(this).closest('th').index();
+    const sortOrder = $(this).val();
+
+    // Clear other sort dropdowns
+    $('.column-sort').not(this).val('');
+
+    if (sortOrder) {
+        table.order([columnIdx, sortOrder]).draw();
+    } else {
+        table.order([]).draw();
+    }
+});
+
+    // Show table after initialization
+    $('#loadingIndicator').fadeOut('fast', function() {
+        $(this).remove();
+        $('#trafficLightTable').removeClass('d-none').hide().fadeIn('fast');
+    });
+
+    // Handle delete button clicks
+    let deleteId = null;
+    $('.delete-btn').on('click', function() {
+        deleteId = $(this).data('id');
+        const location = $(this).data('location');
+        $('#deleteLocationText').text(location);
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    });
+
+    // Handle delete confirmation
+    $('#confirmDelete').on('click', function() {
+        if (deleteId) {
+            fetch(`/dashboard/traffic-light/${deleteId}/delete`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error deleting traffic light');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting traffic light');
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<style>
+.table {
+    width: 100% !important;
+    margin-bottom: 0;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    border: 1px solid #dee2e6;
+    padding: 0.75rem;
+    vertical-align: middle;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: rgba(0,0,0,.02);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0,0,0,.075);
+}
+
+.progress {
+    height: 25px;
+    font-size: 0.9rem;
+    background-color: #e9ecef;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.1);
+}
+
+.progress-bar {
+    background-color: #0d6efd;
+    color: white;
+    text-align: center;
+    line-height: 25px;
+    transition: width 0.6s ease;
+    border-radius: 0.5rem;
+}
+
+.badge {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+    margin-right: 0.5rem;
+    border-radius: 50rem;
+}
+
+.badge.bg-info {
+    background-color: #0dcaf0 !important;
+    color: #000;
+}
+
+.badge.bg-secondary {
+    background-color: #6c757d !important;
+    color: #fff;
+}
+
+.btn-group .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.9rem;
+    border-radius: 0.25rem;
+    margin: 0 0.2rem;
+}
+
+.dataTables_wrapper {
+    padding: 1rem;
+}
+
+.dataTables_filter {
+    margin-bottom: 1rem;
+}
+
+.dataTables_filter input {
+    width: 300px !important;
+    margin-left: 0.5em;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+}
+
+.dataTables_length select {
+    min-width: 80px;
+    padding: 0.375rem 1.75rem 0.375rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+.dataTables_info {
+    padding-top: 0.5rem;
+}
+
+.dataTables_paginate {
+    padding-top: 0.5rem;
+}
+
+.dataTables_paginate .paginate_button {
+    padding: 0.375rem 0.75rem;
+    margin-left: 2px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.dataTables_paginate .paginate_button.current {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white !important;
+}
+
+.dataTables_paginate .paginate_button:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.table-responsive {
+    transition: all 0.3s ease-in-out;
+    min-height: 500px;
+}
+
+#loadingIndicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.dataTables_wrapper {
+    opacity: 0;
+    animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+{% endblock %}

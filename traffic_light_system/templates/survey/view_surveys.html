@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Survey Results{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-chart-bar"></i> Survey Results</h2>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body py-2">
+                    <h6 class="card-title mb-1"><i class="fas fa-star"></i> Average Satisfaction</h6>
+                    <h3 class="mb-0">{{ avg_satisfaction }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body py-2">
+                    <h6 class="card-title mb-1"><i class="fas fa-clock"></i> Average Waiting Time</h6>
+                    <h3 class="mb-0">{{ avg_waiting_time }}s</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <div id="loadingIndicator" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading survey data...</p>
+                </div>
+                <table class="table table-hover table-bordered d-none" id="surveyResultsTable">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Waiting Time</th>
+                            <th>Congestion</th>
+                            <th>Satisfaction</th>
+                            <th>Time of Day</th>
+                            <th>User</th>
+                            <th>Date</th>
+                            <th>Comments</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for survey in surveys %}
+                        <tr>
+                            <td>{{ survey.location }}</td>
+                            <td>{{ survey.waiting_time }}s</td>
+                            <td>
+                                {% set congestion_labels = {
+                                    1: 'Very Low',
+                                    2: 'Low',
+                                    3: 'Medium',
+                                    4: 'High',
+                                    5: 'Very High'
+                                } %}
+                                <span class="badge bg-{{ 'danger' if survey.congestion_level > 3 else 'warning' if survey.congestion_level == 3 else 'success' }}">
+                                    {{ congestion_labels[survey.congestion_level] }}
+                                </span>
+                            </td>
+                            <td>
+                                {% for i in range(survey.satisfaction) %}
+                                    <i class="fas fa-star text-warning"></i>
+                                {% endfor %}
+                                {% for i in range(5 - survey.satisfaction) %}
+                                    <i class="far fa-star text-warning"></i>
+                                {% endfor %}
+                            </td>
+                            <td>{{ survey.time_of_day|replace('_', ' ')|title }}</td>
+                            <td>{{ survey.user }}</td>
+                            <td>{{ survey.created_at }}</td>
+                            <td>{{ survey.comments or 'No comments' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Pre-initialize table container size
+    const tableContainer = $('#surveyResultsTable').closest('.table-responsive');
+    tableContainer.css('min-height', '500px');  // Set minimum height
+
+    const table = $('#surveyResultsTable').DataTable({
+        pageLength: 15,
+        lengthMenu: [15, 30, 50, 100],
+        ordering: true,
+        order: [],
+        dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+             "<'row'<'col-sm-12'tr>>" +
+             "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+        language: {
+            search: "Search:",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+            paginate: {
+                first: "First",
+                last: "Last",
+                next: "Next",
+                previous: "Previous"
+            }
+        }
+    });
+
+    // Show table after initialization
+    $('#loadingIndicator').fadeOut('fast', function() {
+        $(this).remove();
+        $('#surveyResultsTable').removeClass('d-none').hide().fadeIn('fast');
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<style>
+.table {
+    width: 100% !important;
+    margin-bottom: 0;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    border: 1px solid #dee2e6;
+    padding: 0.75rem;
+    vertical-align: middle;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: rgba(0,0,0,.02);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0,0,0,.075);
+}
+
+.badge {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+    margin-right: 0.5rem;
+    border-radius: 50rem;
+}
+
+.badge.bg-info {
+    background-color: #0dcaf0 !important;
+    color: #000;
+}
+
+.badge.bg-secondary {
+    background-color: #6c757d !important;
+    color: #fff;
+}
+
+.card {
+    margin-bottom: 2rem;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dataTables_wrapper {
+    padding: 1rem;
+}
+
+.dataTables_filter {
+    margin-bottom: 1rem;
+}
+
+.dataTables_filter input {
+    width: 300px !important;
+    margin-left: 0.5em;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+}
+
+.dataTables_length select {
+    min-width: 80px;
+    padding: 0.375rem 1.75rem 0.375rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+.dataTables_info {
+    padding-top: 0.5rem;
+}
+
+.dataTables_paginate {
+    padding-top: 0.5rem;
+}
+
+.dataTables_paginate .paginate_button {
+    padding: 0.375rem 0.75rem;
+    margin-left: 2px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.dataTables_paginate .paginate_button.current {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white !important;
+}
+
+.dataTables_paginate .paginate_button:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.table-responsive {
+    transition: all 0.3s ease-in-out;
+    min-height: 500px;  /* Maintain minimum height */
+}
+
+#loadingIndicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.dataTables_wrapper {
+    opacity: 0;
+    animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+{% endblock %} 

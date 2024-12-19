@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-user-circle fa-6x text-primary"></i>
+                    </div>
+                    <h3 class="card-title mb-3">{{ current_user.username }}</h3>
+                    <p class="text-muted mb-3">{{ current_user.email }}</p>
+                    <p class="badge bg-{{ 'primary' if current_user.is_admin() else 'secondary' }} mb-3">
+                        {{ 'Admin' if current_user.is_admin() else 'User' }}
+                    </p>
+                    <p class="text-muted mb-4">
+                        <small>Member since {{ current_user.created_at.strftime('%B %d, %Y') }}</small>
+                    </p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('main.settings') }}" class="btn btn-primary">
+                            <i class="fas fa-cog"></i> Edit Profile
+                        </a>
+                        {% if current_user.is_admin() %}
+                        <a href="{{ url_for('dashboard.manage_traffic_lights') }}" class="btn btn-info text-white">
+                            <i class="fas fa-traffic-light"></i> Manage Traffic Lights
+                        </a>
+                        <a href="{{ url_for('survey.view_surveys') }}" class="btn btn-success">
+                            <i class="fas fa-chart-pie"></i> View Survey Results
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+.card-body {
+    padding: 2rem;
+}
+.fa-6x {
+    font-size: 6em;
+}
+.badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+</style>
+{% endblock %} 

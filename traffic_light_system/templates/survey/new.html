@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Traffic Light Evaluation{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-poll"></i> Smart Traffic Light Evaluation</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('survey.new_survey') }}" id="surveyForm">
+                    <div class="mb-4">
+                        <h5><i class="fas fa-map-marker-alt"></i> Location Information</h5>
+                        <hr>
+                        <div class="mb-3">
+                            <label for="traffic_light_id" class="form-label">Traffic Light Location</label>
+                            <select class="form-select" id="traffic_light_id" name="traffic_light_id" required>
+                                <option value="">Select a traffic light</option>
+                                {% for light in traffic_lights %}
+                                <option value="{{ light.id }}">{{ light.name }} - {{ light.location }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Time of Day</label>
+                            <select class="form-select" name="time_of_day" required>
+                                <option value="morning_rush">Morning Rush Hour (7-9)</option>
+                                <option value="midday">Midday (9-16)</option>
+                                <option value="evening_rush">Evening Rush Hour (16-19)</option>
+                                <option value="evening">Evening (19-22)</option>
+                                <option value="night">Night (22-7)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5><i class="fas fa-clock"></i> Waiting Time Experience</h5>
+                        <hr>
+                        <div class="mb-3">
+                            <label for="waiting_time" class="form-label">Average Waiting Time (seconds)</label>
+                            <input type="number" class="form-control" id="waiting_time" name="waiting_time" min="0" required>
+                            <div class="form-text">Estimate how long you typically wait at this traffic light.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Traffic Congestion Level</label>
+                            <div class="range-container">
+                                <input type="range" class="form-range" id="congestion_level" name="congestion_level" 
+                                       min="1" max="5" step="1" value="3" required>
+                                <div class="range-labels d-flex justify-content-between">
+                                    <span>Very Light</span>
+                                    <span>Light</span>
+                                    <span>Moderate</span>
+                                    <span>Heavy</span>
+                                    <span>Very Heavy</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5><i class="fas fa-user-check"></i> User Experience</h5>
+                        <hr>
+                        <div class="mb-3">
+                            <label class="form-label">Overall Satisfaction</label>
+                            <div class="satisfaction-rating text-center">
+                                <div class="btn-group" role="group">
+                                    {% for i in range(1, 6) %}
+                                    <input type="radio" class="btn-check" name="satisfaction" id="satisfaction{{ i }}" 
+                                           value="{{ i }}" required {% if i == 3 %}checked{% endif %}>
+                                    <label class="btn btn-outline-primary" for="satisfaction{{ i }}">
+                                        {% for _ in range(i) %}
+                                        <i class="fas fa-star"></i>
+                                        {% endfor %}
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Smart Features Evaluation</label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="features[]" value="pedestrian">
+                                        <label class="form-check-label">Good Pedestrian Detection</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="features[]" value="emergency">
+                                        <label class="form-check-label">Emergency Vehicle Priority</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="features[]" value="bicycle">
+                                        <label class="form-check-label">Bicycle-Friendly Timing</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="features[]" value="adaptive">
+                                        <label class="form-check-label">Adaptive to Traffic Flow</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="features[]" value="public_transport">
+                                        <label class="form-check-label">Public Transport Priority</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="features[]" value="coordination">
+                                        <label class="form-check-label">Good Intersection Coordination</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="comments" class="form-label">Additional Comments</label>
+                            <textarea class="form-control" id="comments" name="comments" rows="3" 
+                                    placeholder="Share your experience with this smart traffic light..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Submit Evaluation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.range-container {
+    position: relative;
+    padding-bottom: 2rem;
+}
+
+.range-labels {
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.satisfaction-rating .btn-outline-primary {
+    padding: 0.5rem 1rem;
+}
+
+.satisfaction-rating .fa-star {
+    color: #ffc107;
+}
+
+.btn-check:checked + .btn-outline-primary .fa-star {
+    color: #fff;
+}
+
+.form-range::-webkit-slider-thumb {
+    background: #007bff;
+}
+
+.form-range::-moz-range-thumb {
+    background: #007bff;
+}
+
+.form-check {
+    margin-bottom: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const congestionLevel = document.getElementById('congestion_level');
+    const form = document.getElementById('surveyForm');
+
+    congestionLevel.addEventListener('input', function() {
+        this.style.background = `linear-gradient(to right, 
+            var(--bs-primary) 0%, 
+            var(--bs-primary) ${(this.value-1)*25}%, 
+            #dee2e6 ${(this.value-1)*25}%, 
+            #dee2e6 100%)`;
+    });
+    
+    // Trigger initial gradient
+    congestionLevel.dispatchEvent(new Event('input'));
+
+    // Form validation
+    form.addEventListener('submit', function(event) {
+        const features = document.querySelectorAll('input[name="features[]"]:checked');
+        if (features.length === 0) {
+            event.preventDefault();
+            alert('Please select at least one smart feature that you observed.');
+        }
+    });
+});
+</script>
+{% endblock %} 

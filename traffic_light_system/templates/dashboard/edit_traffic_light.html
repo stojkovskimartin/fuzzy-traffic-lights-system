@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Traffic Light{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-edit"></i> Edit Traffic Light</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{{ url_for('dashboard.manage_traffic_lights') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Traffic Light Name</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ traffic_light.name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   value="{{ traffic_light.location }}" required>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="green_duration" class="form-label">Green Duration (seconds)</label>
+                                <input type="number" class="form-control" id="green_duration" name="green_duration" 
+                                       value="{{ traffic_light.green_duration }}" min="30" max="120" required>
+                                <div class="form-text">Duration range: 30-120 seconds</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="rush_hour_factor" class="form-label">Rush Hour Factor</label>
+                                <input type="number" class="form-control" id="rush_hour_factor" name="rush_hour_factor" 
+                                       value="{{ traffic_light.rush_hour_factor }}" min="0" max="1" step="0.01" required>
+                                <div class="form-text">Factor range: 0.0-1.0</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="sensors" class="form-label">Number of Sensors</label>
+                                <input type="number" class="form-control" id="sensors" name="sensors" 
+                                       value="{{ traffic_light.sensors }}" min="1" max="10" required>
+                                <div class="form-text">Range: 1-10 sensors</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="cameras" class="form-label">Number of Cameras</label>
+                                <input type="number" class="form-control" id="cameras" name="cameras" 
+                                       value="{{ traffic_light.cameras }}" min="1" max="5" required>
+                                <div class="form-text">Range: 1-5 cameras</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line"></i> Traffic Light Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Current Traffic Density</h6>
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div class="progress-bar bg-{{ 'danger' if traffic_light.density > 0.7 else 'warning' if traffic_light.density > 0.4 else 'success' }}"
+                                     role="progressbar" style="width: {{ traffic_light.density * 100 }}%">
+                                    {{ "%.1f"|format(traffic_light.density * 100) }}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Rush Hour Impact</h6>
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div class="progress-bar bg-info"
+                                     role="progressbar" style="width: {{ traffic_light.rush_hour_factor * 100 }}%">
+                                    {{ "%.1f"|format(traffic_light.rush_hour_factor * 100) }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h6>Equipment Status</h6>
+                            <div class="d-flex justify-content-around">
+                                <div class="text-center">
+                                    <i class="fas fa-satellite-dish fa-2x text-info"></i>
+                                    <p class="mt-2 mb-0">{{ traffic_light.sensors }} Sensors</p>
+                                    <small class="text-muted">All operational</small>
+                                </div>
+                                <div class="text-center">
+                                    <i class="fas fa-video fa-2x text-secondary"></i>
+                                    <p class="mt-2 mb-0">{{ traffic_light.cameras }} Cameras</p>
+                                    <small class="text-muted">All operational</small>
+                                </div>
+                                <div class="text-center">
+                                    <i class="fas fa-clock fa-2x text-success"></i>
+                                    <p class="mt-2 mb-0">{{ traffic_light.green_duration }}s</p>
+                                    <small class="text-muted">Green duration</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate inputs
+        const greenDuration = parseInt(document.getElementById('green_duration').value);
+        const rushHourFactor = parseFloat(document.getElementById('rush_hour_factor').value);
+        const sensors = parseInt(document.getElementById('sensors').value);
+        const cameras = parseInt(document.getElementById('cameras').value);
+        
+        let isValid = true;
+        let errorMessage = '';
+        
+        if (greenDuration < 30 || greenDuration > 120) {
+            errorMessage += 'Green duration must be between 30 and 120 seconds.\n';
+            isValid = false;
+        }
+        
+        if (rushHourFactor < 0 || rushHourFactor > 1) {
+            errorMessage += 'Rush hour factor must be between 0 and 1.\n';
+            isValid = false;
+        }
+        
+        if (sensors < 1 || sensors > 10) {
+            errorMessage += 'Number of sensors must be between 1 and 10.\n';
+            isValid = false;
+        }
+        
+        if (cameras < 1 || cameras > 5) {
+            errorMessage += 'Number of cameras must be between 1 and 5.\n';
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            alert(errorMessage);
+            return;
+        }
+        
+        // Submit the form if validation passes
+        form.submit();
+    });
+});
+</script>
+{% endblock %} 
